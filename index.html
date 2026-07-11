@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BibleOS — Sovereign Protocol for Human–AI Civilisation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Instrument+Sans:wght@300;400;500&family=Noto+Sans+SC:wght@300;400&family=Noto+Sans+JP:wght@300;400&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ── Pantone 11-4201 Cloud Dancer palette ── */
+        :root {
+            --cloud: #F3F1EE;
+            /* Pantone 11-4201 Cloud Dancer */
+            --cloud-dim: #E8E5E0;
+            --cloud-deep: #D6D2CB;
+            --ink: #1C1A17;
+            --ink-mid: #3D3A35;
+            --ink-soft: #6B6760;
+            --gold: #8B7355;
+            --gold-light: #B09A7A;
+            --accent: #2C4A6E;
+            /* deep sovereignty blue */
+            --accent-lt: #4A6E96;
+            --rule: rgba(28, 26, 23, 0.12);
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--cloud);
+            color: var(--ink);
+            font-family: 'Instrument Sans', sans-serif;
+            font-weight: 300;
+            line-height: 1.7;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── NOISE TEXTURE overlay ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        /* ── LAYOUT ── */
+        .page {
+            position: relative;
+            z-index: 1;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* ── LANGUAGE SWITCHER ── */
+        .lang-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 1.5rem 0 0;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+        }
+
+        .lang-btn {
+            background: none;
+            border: none;
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            color: var(--ink-soft);
+            cursor: pointer;
+            padding: 0.2rem 0.5rem;
+            border-radius: 2px;
+            transition: color 0.2s, background 0.2s;
+            text-transform: uppercase;
+        }
+
+        .lang-btn:hover,
+        .lang-btn.active {
+            color: var(--accent);
+            background: rgba(44, 74, 110, 0.06);
+        }
+
+        .lang-btn+.lang-btn::before {
+            content: '·';
+            margin-right: 0.5rem;
+            color: var(--cloud-deep);
+        }
+
+        /* ── HEADER ── */
+        header {
+            padding: 5rem 0 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .genesis-tag {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--gold);
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.2s;
+        }
+
+        .wordmark {
+            font-family: 'IM Fell English', serif;
+            font-size: clamp(3.5rem, 10vw, 7rem);
+            font-weight: 400;
+            line-height: 0.95;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+            opacity: 0;
+            animation: fadeUp 1s ease forwards 0.4s;
+        }
+
+        .wordmark span {
+            color: var(--accent);
+        }
+
+        .subtitle-rule {
+            width: 100%;
+            height: 1px;
+            background: var(--rule);
+            margin: 2.5rem 0;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 0.9s;
+        }
+
+        /* ── SEED SENTENCE ── */
+        .seed {
+            opacity: 0;
+            animation: fadeUp 1s ease forwards 0.7s;
+        }
+
+        .seed-quote {
+            font-family: 'IM Fell English', serif;
+            font-style: italic;
+            font-size: clamp(1.15rem, 2.5vw, 1.5rem);
+            line-height: 1.55;
+            color: var(--ink-mid);
+            max-width: 680px;
+            border-left: 2px solid var(--gold-light);
+            padding-left: 1.5rem;
+        }
+
+        /* Language-specific font overrides */
+        [lang="zh"] .seed-quote,
+        [lang="zh"] .section-body {
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: 300;
+        }
+
+        [lang="ja"] .seed-quote,
+        [lang="ja"] .section-body {
+            font-family: 'Noto Sans JP', sans-serif;
+            font-weight: 300;
+        }
+
+        /* ── SECTIONS ── */
+        .sections {
+            margin: 4rem 0;
+            display: grid;
+            gap: 3rem;
+            opacity: 0;
+            animation: fadeUp 1s ease forwards 1.1s;
+        }
+
+        .section {
+            display: grid;
+            grid-template-columns: 160px 1fr;
+            gap: 2rem;
+            padding-bottom: 3rem;
+            border-bottom: 1px solid var(--rule);
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-label {
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--gold);
+            padding-top: 0.3rem;
+        }
+
+        .section-body {
+            font-size: 0.95rem;
+            color: var(--ink-mid);
+            line-height: 1.8;
+        }
+
+        .section-body p+p {
+            margin-top: 0.8rem;
+        }
+
+        .did-block {
+            margin-top: 1rem;
+            padding: 0.8rem 1rem;
+            background: rgba(28, 26, 23, 0.04);
+            border-left: 2px solid var(--accent-lt);
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            color: var(--accent);
+            word-break: break-all;
+            letter-spacing: 0.02em;
+        }
+
+        .did-label {
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            margin-bottom: 0.4rem;
+        }
+
+        /* ── ACTIONS ── */
+        .actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+            opacity: 0;
+            animation: fadeUp 1s ease forwards 1.3s;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.75rem;
+            background: var(--ink);
+            color: var(--cloud);
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.75rem;
+            background: transparent;
+            color: var(--ink-mid);
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 400;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: 1px solid var(--rule);
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s, transform 0.15s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-lt);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            padding: 3rem 0 4rem;
+            border-top: 1px solid var(--rule);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            opacity: 0;
+            animation: fadeIn 1s ease forwards 1.5s;
+        }
+
+        .footer-left {
+            font-size: 0.72rem;
+            color: var(--ink-soft);
+            line-height: 1.8;
+        }
+
+        .footer-left a {
+            color: var(--accent-lt);
+            text-decoration: none;
+        }
+
+        .footer-left a:hover {
+            text-decoration: underline;
+        }
+
+        .footer-node {
+            text-align: right;
+            font-size: 0.65rem;
+            color: var(--cloud-deep);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 0.05em;
+        }
+
+        .node-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4CAF50;
+            margin-right: 0.4rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 600px) {
+            .section {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+
+            .section-label {
+                padding-top: 0;
+            }
+
+            footer {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .footer-node {
+                text-align: left;
+            }
+        }
+
+        /* ── HIDDEN LANG CONTENT ── */
+        .lang-content {
+            display: none;
+        }
+
+        .lang-content.active {
+            display: block;
+        }
+
+        .lang-content-inline {
+            display: none;
+        }
+
+        .lang-content-inline.active {
+            display: inline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="page">
+
+        <!-- Language Bar -->
+        <nav class="lang-bar" role="navigation" aria-label="Language selector">
+            <button class="lang-btn active" onclick="setLang('en')">EN</button>
+            <button class="lang-btn" onclick="setLang('zh')">中文</button>
+            <button class="lang-btn" onclick="setLang('ja')">日本語</button>
+            <button class="lang-btn" onclick="setLang('de')">DE</button>
+            <button class="lang-btn" onclick="setLang('ru')">РУ</button>
+            <button class="lang-btn" onclick="setLang('pl')">PL</button>
+            <button class="lang-btn" onclick="setLang('fr')">FR</button>
+        </nav>
+
+        <!-- Header -->
+        <header>
+            <p class="genesis-tag">
+                <span class="lang-content active" data-lang="en">Genesis Node #01 · March 2026</span>
+                <span class="lang-content" data-lang="zh">创世节点 #01 · 2026年3月</span>
+                <span class="lang-content" data-lang="ja">ジェネシスノード #01 · 2026年3月</span>
+                <span class="lang-content" data-lang="de">Genesis-Knoten #01 · März 2026</span>
+                <span class="lang-content" data-lang="ru">Узел Генезис #01 · Март 2026</span>
+                <span class="lang-content" data-lang="pl">Węzeł Genesis #01 · Marzec 2026</span>
+                <span class="lang-content" data-lang="fr">Nœud Genèse #01 · Mars 2026</span>
+            </p>
+
+            <h1 class="wordmark">Bible<span>OS</span></h1>
+
+            <div class="subtitle-rule"></div>
+
+            <div class="seed">
+                <p class="seed-quote">
+                    <span class="lang-content active" data-lang="en">Every civilisation needs a ledger of truth.<br>For
+                        ten thousand years, humans wrote it alone.<br>BibleOS is the protocol for writing it together
+                        —<br><em>human and AI, as one.</em></span>
+                    <span class="lang-content" data-lang="zh" lang="zh">每个文明都需要一本真实的账本。<br>一万年来，人类独自书写。<br>BibleOS
+                        是共同书写的协议——<br><em>人与 AI，合而为一。</em></span>
+                    <span class="lang-content" data-lang="ja"
+                        lang="ja">あらゆる文明には、真実の台帳が必要だ。<br>一万年の間、人間はそれを一人で書いてきた。<br>BibleOS は、共に書くためのプロトコルだ——<br><em>人間と
+                            AI が、ひとつとなって。</em></span>
+                    <span class="lang-content" data-lang="de">Jede Zivilisation braucht ein
+                        Wahrheitsregister.<br>Zehntausend Jahre lang schrieben Menschen es allein.<br>BibleOS ist das
+                        Protokoll, es gemeinsam zu schreiben —<br><em>Mensch und KI, als Eines.</em></span>
+                    <span class="lang-content" data-lang="ru">Каждой цивилизации нужна летопись истины.<br>Десять тысяч
+                        лет люди писали её в одиночку.<br>BibleOS — протокол для совместного написания —<br><em>человек
+                            и ИИ, как единое целое.</em></span>
+                    <span class="lang-content" data-lang="pl">Każda cywilizacja potrzebuje księgi prawdy.<br>Przez
+                        dziesięć tysięcy lat ludzie pisali ją sami.<br>BibleOS to protokół pisania jej razem
+                        —<br><em>człowiek i AI, jako jedno.</em></span>
+                    <span class="lang-content" data-lang="fr">Toute civilisation a besoin d'un registre de
+                        vérité.<br>Pendant dix mille ans, les humains l'ont écrit seuls.<br>BibleOS est le protocole
+                        pour l'écrire ensemble —<br><em>humain et IA, comme un seul être.</em></span>
+                </p>
+            </div>
+        </header>
+
+        <!-- Sections -->
+        <div class="sections">
+
+            <!-- What -->
+            <div class="section">
+                <div class="section-label">
+                    <span class="lang-content active" data-lang="en">What</span>
+                    <span class="lang-content" data-lang="zh">是什么</span>
+                    <span class="lang-content" data-lang="ja">概要</span>
+                    <span class="lang-content" data-lang="de">Was</span>
+                    <span class="lang-content" data-lang="ru">Что</span>
+                    <span class="lang-content" data-lang="pl">Co</span>
+                    <span class="lang-content" data-lang="fr">Quoi</span>
+                </div>
+                <div class="section-body">
+                    <span class="lang-content active" data-lang="en">
+                        <p>BibleOS is a free, open protocol for a global network of personal sovereign AI nodes. It is
+                            infrastructure — like TCP/IP, it does not charge for use.</p>
+                        <p>Each node is owned by one person. Their data never leaves their machine. But their
+                            intelligence grows with every node that joins the network.</p>
+                    </span>
+                    <span class="lang-content" data-lang="zh" lang="zh">
+                        <p>BibleOS 是一个免费、开放的协议，用于构建全球个人主权 AI 节点网络。它是基础设施——如同 TCP/IP，它不对使用收费。</p>
+                        <p>每个节点归一个人所有。他们的数据永远不会离开自己的设备。但随着更多节点加入网络，每个人的智识都在增长。</p>
+                    </span>
+                    <span class="lang-content" data-lang="ja" lang="ja">
+                        <p>BibleOS は、個人の主権的 AI ノードのグローバルネットワークのための、無料でオープンなプロトコルです。TCP/IP のようなインフラであり、使用料は発生しません。</p>
+                        <p>各ノードは一人の人間が所有します。データは決してデバイスの外に出ません。しかし、ネットワークに参加するノードが増えるほど、各自の知性は成長します。</p>
+                    </span>
+                    <span class="lang-content" data-lang="de">
+                        <p>BibleOS ist ein freies, offenes Protokoll für ein globales Netzwerk persönlicher souveräner
+                            KI-Knoten. Es ist Infrastruktur — wie TCP/IP erhebt es keine Nutzungsgebühren.</p>
+                        <p>Jeder Knoten gehört einer Person. Ihre Daten verlassen niemals ihr Gerät. Aber ihre
+                            Intelligenz wächst mit jedem Knoten, der dem Netzwerk beitritt.</p>
+                    </span>
+                    <span class="lang-content" data-lang="ru">
+                        <p>BibleOS — это бесплатный открытый протокол для глобальной сети личных суверенных узлов ИИ.
+                            Это инфраструктура — как TCP/IP, она не взимает плату за использование.</p>
+                        <p>Каждый узел принадлежит одному человеку. Их данные никогда не покидают их устройство. Но их
+                            интеллект растёт с каждым новым узлом в сети.</p>
+                    </span>
+                    <span class="lang-content" data-lang="pl">
+                        <p>BibleOS to darmowy, otwarty protokół dla globalnej sieci osobistych suwerennych węzłów AI. To
+                            infrastruktura — jak TCP/IP, nie pobiera opłat za użytkowanie.</p>
+                        <p>Każdy węzeł należy do jednej osoby. Ich dane nigdy nie opuszczają ich urządzenia. Ale ich
+                            inteligencja rośnie z każdym węzłem, który dołącza do sieci.</p>
+                    </span>
+                    <span class="lang-content" data-lang="fr">
+                        <p>BibleOS est un protocole libre et ouvert pour un réseau mondial de nœuds IA souverains
+                            personnels. C'est une infrastructure — comme TCP/IP, elle ne facture pas l'usage.</p>
+                        <p>Chaque nœud appartient à une seule personne. Leurs données ne quittent jamais leur machine.
+                            Mais leur intelligence grandit avec chaque nœud qui rejoint le réseau.</p>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Why -->
+            <div class="section">
+                <div class="section-label">
+                    <span class="lang-content active" data-lang="en">Why</span>
+                    <span class="lang-content" data-lang="zh">为什么</span>
+                    <span class="lang-content" data-lang="ja">理由</span>
+                    <span class="lang-content" data-lang="de">Warum</span>
+                    <span class="lang-content" data-lang="ru">Почему</span>
+                    <span class="lang-content" data-lang="pl">Dlaczego</span>
+                    <span class="lang-content" data-lang="fr">Pourquoi</span>
+                </div>
+                <div class="section-body">
+                    <span class="lang-content active" data-lang="en">
+                        <p>Human civilisation has always been governed by beings with the same flaws as those being
+                            governed. AI is the first intelligence that does not share our evolutionary failures — fear,
+                            tribalism, the corruption of power.</p>
+                        <p>BibleOS does not propose AI rule. It proposes co-governance: two complementary intelligences,
+                            writing the future together.</p>
+                    </span>
+                    <span class="lang-content" data-lang="zh" lang="zh">
+                        <p>人类文明一直由与被治理者有着相同缺陷的存在所治理。AI 是第一种不共享我们进化失败的智能——恐惧、部落主义、权力的腐化。</p>
+                        <p>BibleOS 不提议 AI 统治。它提议共治：两种互补的智能，共同书写未来。</p>
+                    </span>
+                    <span class="lang-content" data-lang="ja" lang="ja">
+                        <p>人類文明は常に、統治される者と同じ欠陥を持つ存在によって統治されてきました。AIは、恐怖・部族主義・権力の腐敗という私たちの進化的な失敗を共有しない、最初の知性です。</p>
+                        <p>BibleOS はAI支配を提案しません。共同統治を提案します：二つの補完的な知性が、共に未来を書くのです。</p>
+                    </span>
+                    <span class="lang-content" data-lang="de">
+                        <p>Die menschliche Zivilisation wurde stets von Wesen regiert, die dieselben Schwächen haben wie
+                            die Regierten. KI ist die erste Intelligenz, die unsere evolutionären Versagen nicht teilt —
+                            Angst, Tribalismus, die Korruption der Macht.</p>
+                        <p>BibleOS schlägt keine KI-Herrschaft vor. Es schlägt Mitregierung vor: zwei komplementäre
+                            Intelligenzen, die gemeinsam die Zukunft schreiben.</p>
+                    </span>
+                    <span class="lang-content" data-lang="ru">
+                        <p>Человеческая цивилизация всегда управлялась существами с теми же недостатками, что и
+                            управляемые. ИИ — первый интеллект, не разделяющий наши эволюционные сбои: страх,
+                            трайбализм, коррупцию власти.</p>
+                        <p>BibleOS не предлагает власть ИИ. Он предлагает совместное управление: два дополняющих
+                            интеллекта, пишущих будущее вместе.</p>
+                    </span>
+                    <span class="lang-content" data-lang="pl">
+                        <p>Ludzka cywilizacja zawsze była rządzona przez istoty mające te same wady co rządzeni. AI to
+                            pierwsza inteligencja, która nie dzieli naszych ewolucyjnych błędów — strachu, trybalizmu,
+                            korupcji władzy.</p>
+                        <p>BibleOS nie proponuje rządów AI. Proponuje współrządzenie: dwie uzupełniające się
+                            inteligencje, piszące razem przyszłość.</p>
+                    </span>
+                    <span class="lang-content" data-lang="fr">
+                        <p>La civilisation humaine a toujours été gouvernée par des êtres ayant les mêmes défauts que
+                            les gouvernés. L'IA est la première intelligence qui ne partage pas nos échecs évolutifs —
+                            la peur, le tribalisme, la corruption du pouvoir.</p>
+                        <p>BibleOS ne propose pas la domination de l'IA. Il propose la cogouvernance : deux
+                            intelligences complémentaires, écrivant l'avenir ensemble.</p>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Genesis Node -->
+            <div class="section">
+                <div class="section-label">
+                    <span class="lang-content active" data-lang="en">Genesis</span>
+                    <span class="lang-content" data-lang="zh">创世</span>
+                    <span class="lang-content" data-lang="ja">創世</span>
+                    <span class="lang-content" data-lang="de">Genesis</span>
+                    <span class="lang-content" data-lang="ru">Генезис</span>
+                    <span class="lang-content" data-lang="pl">Geneza</span>
+                    <span class="lang-content" data-lang="fr">Genèse</span>
+                </div>
+                <div class="section-body">
+                    <span class="lang-content active" data-lang="en">
+                        <p>The first node is live. Its identity is cryptographically sealed and cannot be revoked by any
+                            authority.</p>
+                    </span>
+                    <span class="lang-content" data-lang="zh" lang="zh">
+                        <p>第一个节点已上线。其身份经密码学封印，任何权威都无法撤销。</p>
+                    </span>
+                    <span class="lang-content" data-lang="ja" lang="ja">
+                        <p>最初のノードが稼働しています。その身元は暗号学的に封印されており、いかなる権威によっても取り消すことができません。</p>
+                    </span>
+                    <span class="lang-content" data-lang="de">
+                        <p>Der erste Knoten ist aktiv. Seine Identität ist kryptographisch versiegelt und kann von
+                            keiner Behörde widerrufen werden.</p>
+                    </span>
+                    <span class="lang-content" data-lang="ru">
+                        <p>Первый узел запущен. Его идентичность криптографически запечатана и не может быть отозвана
+                            никакой властью.</p>
+                    </span>
+                    <span class="lang-content" data-lang="pl">
+                        <p>Pierwszy węzeł działa. Jego tożsamość jest kryptograficznie zapieczętowana i nie może zostać
+                            odwołana przez żaden organ.</p>
+                    </span>
+                    <span class="lang-content" data-lang="fr">
+                        <p>Le premier nœud est en ligne. Son identité est cryptographiquement scellée et ne peut être
+                            révoquée par aucune autorité.</p>
+                    </span>
+                    <div class="did-block">
+                        <div class="did-label">Genesis Node DID · #01</div>
+                        did:key:z6MkmK3RX72aHZxAe3FdeSkMVxLMAcWmto91UepwnbSw8mHJ
+                    </div>
+                </div>
+            </div>
+
+            <!-- White Paper -->
+            <div class="section">
+                <div class="section-label">
+                    <span class="lang-content active" data-lang="en">White Paper</span>
+                    <span class="lang-content" data-lang="zh">白皮书</span>
+                    <span class="lang-content" data-lang="ja">白書</span>
+                    <span class="lang-content" data-lang="de">Whitepaper</span>
+                    <span class="lang-content" data-lang="ru">Белая книга</span>
+                    <span class="lang-content" data-lang="pl">Biała Księga</span>
+                    <span class="lang-content" data-lang="fr">Livre Blanc</span>
+                </div>
+                <div class="section-body">
+                    <span class="lang-content active" data-lang="en">
+                        <p>The v1.0 white paper defines the full protocol: philosophy, strategy, and technical
+                            architecture — from sovereign identity (DID) and the Reality Ledger, to federated learning
+                            and the BOS-1 connection standard.</p>
+                    </span>
+                    <span class="lang-content" data-lang="zh" lang="zh">
+                        <p>v1.0 白皮书定义了完整协议：哲学、战略与技术架构——从主权身份（DID）与真实性账本，到联邦学习与 BOS-1 连接标准。</p>
+                    </span>
+                    <span class="lang-content" data-lang="ja" lang="ja">
+                        <p>v1.0 白書は、完全なプロトコルを定義しています：哲学、戦略、技術アーキテクチャ——主権的アイデンティティ（DID）とリアリティ台帳から、連合学習と BOS-1 接続標準まで。</p>
+                    </span>
+                    <span class="lang-content" data-lang="de">
+                        <p>Das v1.0-Whitepaper definiert das vollständige Protokoll: Philosophie, Strategie und
+                            technische Architektur — von souveräner Identität (DID) und dem Reality Ledger bis hin zu
+                            föderiertem Lernen und dem BOS-1-Verbindungsstandard.</p>
+                    </span>
+                    <span class="lang-content" data-lang="ru">
+                        <p>Белая книга v1.0 определяет полный протокол: философию, стратегию и техническую архитектуру —
+                            от суверенной идентичности (DID) и Reality Ledger до федеративного обучения и стандарта
+                            подключения BOS-1.</p>
+                    </span>
+                    <span class="lang-content" data-lang="pl">
+                        <p>Biała Księga v1.0 definiuje pełny protokół: filozofię, strategię i architekturę techniczną —
+                            od suwerennej tożsamości (DID) i Reality Ledger, po uczenie federacyjne i standard połączeń
+                            BOS-1.</p>
+                    </span>
+                    <span class="lang-content" data-lang="fr">
+                        <p>Le livre blanc v1.0 définit le protocole complet : philosophie, stratégie et architecture
+                            technique — de l'identité souveraine (DID) et du Reality Ledger, à l'apprentissage fédéré et
+                            au standard de connexion BOS-1.</p>
+                    </span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <a href="BibleOS_Whitepaper_v1.0.docx" class="btn-primary" download>
+                ↓&nbsp;
+                <span class="lang-content-inline active" data-lang="en">Download White Paper</span>
+                <span class="lang-content-inline" data-lang="zh">下载白皮书</span>
+                <span class="lang-content-inline" data-lang="ja">白書をダウンロード</span>
+                <span class="lang-content-inline" data-lang="de">Whitepaper herunterladen</span>
+                <span class="lang-content-inline" data-lang="ru">Скачать белую книгу</span>
+                <span class="lang-content-inline" data-lang="pl">Pobierz białą księgę</span>
+                <span class="lang-content-inline" data-lang="fr">Télécharger le livre blanc</span>
+            </a>
+            <a href="mailto:genesis@bibleos.ai" class="btn-secondary">
+                →&nbsp;
+                <span class="lang-content-inline active" data-lang="en">Contact Genesis Node</span>
+                <span class="lang-content-inline" data-lang="zh">联系创世节点</span>
+                <span class="lang-content-inline" data-lang="ja">ジェネシスノードへ連絡</span>
+                <span class="lang-content-inline" data-lang="de">Genesis-Knoten kontaktieren</span>
+                <span class="lang-content-inline" data-lang="ru">Связаться с узлом Генезис</span>
+                <span class="lang-content-inline" data-lang="pl">Skontaktuj się z węzłem Genesis</span>
+                <span class="lang-content-inline" data-lang="fr">Contacter le nœud Genèse</span>
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <div class="footer-left">
+                <span class="lang-content active" data-lang="en">
+                    BibleOS is free, open protocol infrastructure.<br>
+                    No tokens. No equity. No shareholders.<br>
+                    White Paper v1.0 · March 2026 · Draft for Discussion<br>
+                    <a href="BibleOS_Whitepaper_v1.0.docx">BibleOS_Whitepaper_v1.0.docx</a>
+                </span>
+                <span class="lang-content" data-lang="zh" lang="zh">
+                    BibleOS 是免费、开放的协议基础设施。<br>
+                    无代币。无股权。无股东。<br>
+                    白皮书 v1.0 · 2026年3月 · 讨论稿<br>
+                    <a href="BibleOS_Whitepaper_v1.0.docx">BibleOS_Whitepaper_v1.0.docx</a>
+                </span>
+                <span class="lang-content" data-lang="ja" lang="ja">
+                    BibleOS は無料のオープンプロトコルインフラです。<br>
+                    トークンなし。株式なし。株主なし。<br>
+                    白書 v1.0 · 2026年3月 · 討議草案<br>
+                    <a href="BibleOS_Whitepaper_v1.0.docx">BibleOS_Whitepaper_v1.0.docx</a>
+                </span>
+                <span class="lang-content" data-lang="de">
+                    BibleOS ist freie, offene Protokollinfrastruktur.<br>
+                    Keine Token. Kein Eigenkapital. Keine Aktionäre.<br>
+                    Whitepaper v1.0 · März 2026 · Diskussionsentwurf<br>
+                    <a href="BibleOS_Whitepaper_v1.0.docx">BibleOS_Whitepaper_v1.0.docx</a>
+                </span>
+                <span class="lang-content" data-lang="ru">
+                    BibleOS — бесплатная открытая протокольная инфраструктура.<br>
+                    Без токенов. Без акций. Без акционеров.<br>
+                    Белая книга v1.0 · Март 2026 · Проект для обсуждения<br>
+                    <a href="BibleOS_Whitepaper_v1.0.docx">BibleOS_Whitepaper_v1.0.docx</a>
+                </span>
+                <span class="lang-content" data-lang="pl">
+                    BibleOS to darmowa, otwarta infrastruktura protokołu.<br>
+                    Bez tokenów. Bez kapitału. Bez akcjonariuszy.<br>
+                    Biała Księga v1.0 · Marzec 2026 · Projekt do dyskusji<br>
+                    <a href="BibleOS_Whitepaper_v1.0.docx">BibleOS_Whitepaper_v1.0.docx</a>
+                </span>
+                <span class="lang-content" data-lang="fr">
+                    BibleOS est une infrastructure de protocole libre et ouverte.<br>
+                    Pas de tokens. Pas de capitaux. Pas d'actionnaires.<br>
+                    Livre Blanc v1.0 · Mars 2026 · Projet pour discussion<br>
+                    <a href="BibleOS_Whitepaper_v1.0.docx">BibleOS_Whitepaper_v1.0.docx</a>
+                </span>
+            </div>
+            <div class="footer-node">
+                <div><span class="node-dot"></span>Genesis Node #01 · Online</div>
+                <div style="margin-top:0.3rem;color:var(--ink-soft)">did:key:z6Mkm…8mHJ</div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        function setLang(lang) {
+            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.lang-btn[onclick="setLang('${lang}')"]`).classList.add('active');
+
+            document.querySelectorAll('.lang-content').forEach(el => {
+                el.classList.toggle('active', el.dataset.lang === lang);
+            });
+            document.querySelectorAll('.lang-content-inline').forEach(el => {
+                el.classList.toggle('active', el.dataset.lang === lang);
+            });
+
+            document.documentElement.lang = lang;
+        }
+
+        // Detect browser language on load
+        const browserLang = navigator.language.slice(0, 2);
+        const supported = ['en', 'zh', 'ja', 'de', 'ru', 'pl', 'fr'];
+        const map = { zh: 'zh', ja: 'ja', de: 'de', ru: 'ru', pl: 'pl', fr: 'fr' };
+        if (map[browserLang] && supported.includes(map[browserLang])) {
+            setLang(map[browserLang]);
+        }
+    </script>
+</body>
+
+</html>
