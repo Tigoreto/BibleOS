@@ -1,0 +1,10 @@
+{
+  "name": "@bibleos/monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BibleOS Sovereign Protocol & AIOS Platform",
+  "scripts": {
+    "test": "node --test packages/*/tests/*.test.js core/kernel/tests/*.test.js"
+  }
+}
