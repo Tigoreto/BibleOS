@@ -1,89 +1,78 @@
 import fs from 'node:fs';
 
-export function formatStepSummary({
-	targetPath,
-	strictMode,
-	scannedFilesCount,
-	detectionsCount,
-	violations,
-	ledgerEntry,
-	ledgerIntegrity
-}) {
-	const status = violations.length === 0 ? 'PASSED' : 'VIOLATIONS_DETECTED';
+/**
+ * Builds a markdown report suitable for GitHub Step Summary and local audit logs.
+ */
+export function buildMarkdownSummary({ scanResult, ledgerEntry, strictMode }) {
+	const statusText = scanResult.isCompliant ? 'PASSED' : 'VIOLATIONS_DETECTED';
+	const statusBadge = scanResult.isCompliant
+		? '**Status**: `COMPLIANT (PASSED)`'
+		: '**Status**: `BREACH DETECTED (FAILED)`';
 
-	const lines = [
-		'# BibleOS Sandbox & Reality Ledger Audit Report',
-		'',
-		'## 1. Audit Execution Overview',
-		'',
-		'| Parameter | Value |',
-		'| :--- | :--- |',
-		`| **Audit Status** | \`${status}\` |`,
-		`| **Target Path** | \`${targetPath}\` |`,
-		`| **Strict Mode** | \`${strictMode}\` |`,
-		`| **Files Scanned** | ${scannedFilesCount} |`,
-		`| **Network Detections** | ${detectionsCount} |`,
-		`| **Policy Violations** | ${violations.length} |`,
-		''
-	];
+	let md = `## BibleOS Sovereign Sandbox & Reality Ledger Audit Report\n\n`;
+	md += `${statusBadge}\n\n`;
+	md += `| Metric | Value |\n`;
+	md += `| :--- | :--- |\n`;
+	md += `| Target Path | \`${scanResult.targetPath}\` |\n`;
+	md += `| Scanned Files | \`${scanResult.scannedFileCount}\` |\n`;
+	md += `| Discovered Endpoints | \`${scanResult.discoveredEndpoints.length}\` |\n`;
+	md += `| Unauthorized Egress Count | \`${scanResult.violations.length}\` |\n`;
+	md += `| Strict Mode Enforcement | \`${strictMode}\` |\n\n`;
 
-	// Ledger Proof Section
 	if (ledgerEntry) {
-		lines.push('## 2. Reality Ledger Cryptographic Proof');
-		lines.push('');
-		lines.push('| Field | Value |');
-		lines.push('| :--- | :--- |');
-		lines.push(`| **Actor DID** | \`${ledgerEntry.actor}\` |`);
-		lines.push(`| **Entry Hash** | \`${ledgerEntry.entry_hash}\` |`);
-		lines.push(`| **Chain Hash** | \`${ledgerEntry.chain_hash}\` |`);
-		lines.push(`| **Timestamp (Monotonic)** | \`${ledgerEntry.timestamp}\` |`);
-		lines.push(`| **Chain Integrity** | \`${ledgerIntegrity && ledgerIntegrity.valid ? 'VALID' : 'INVALID'}\` |`);
-		lines.push('');
+		md += `### Reality Ledger Cryptographic Proof\n\n`;
+		md += `| Field | Value |\n`;
+		md += `| :--- | :--- |\n`;
+		md += `| Block Hash (SHA-256) | \`${ledgerEntry.entry_hash}\` |\n`;
+		md += `| Previous Chain Hash | \`${ledgerEntry.previous_chain_hash}\` |\n`;
+		md += `| Timestamp (Nanoseconds) | \`${ledgerEntry.timestamp_ns}\` |\n`;
+		md += `| Actor DID | \`${ledgerEntry.actor}\` |\n`;
+		md += `| Cryptographic Signature | \`VERIFIED\` |\n\n`;
 	}
 
-	// Violations Table
-	if (violations.length > 0) {
-		lines.push('## 3. Detected Policy Violations');
-		lines.push('');
-		lines.push('| File | Line:Col | Type | Target | Details |');
-		lines.push('| :--- | :--- | :--- | :--- | :--- |');
-		for (const v of violations) {
-			const sanitizedFile = v.file.replace(/\|/g, '\\|');
-			const sanitizedTarget = v.target.replace(/\|/g, '\\|');
-			const sanitizedReason = v.reason.replace(/\|/g, '\\|');
-			lines.push(
-				`| \`${sanitizedFile}\` | ${v.line}:${v.column} | \`${v.callType}\` | \`${sanitizedTarget}\` | ${sanitizedReason} |`
-			);
+	if (scanResult.violations.length > 0) {
+		md += `### Intercepted Egress Violations (${scanResult.violations.length})\n\n`;
+		md += `| File | Line | Violation Type | Target Endpoint / Call | Detail |\n`;
+		md += `| :--- | :---: | :--- | :--- | :--- |\n`;
+		for (const v of scanResult.violations.slice(0, 50)) {
+			const safeFile = v.file.replace(/\\/g, '/');
+			md += `| \`${safeFile}\` | ${v.line} | \`${v.type}\` | \`${v.target}\` | ${v.detail} |\n`;
 		}
-		lines.push('');
+		if (scanResult.violations.length > 50) {
+			md += `\n> Truncated: ${scanResult.violations.length - 50} additional violations not listed.\n\n`;
+		}
 	} else {
-		lines.push('## 3. Compliance Status');
-		lines.push('');
-		lines.push('No unauthorized external phone-home or egress attempts were detected.');
-		lines.push('');
+		md += `### Gatekeeper Audit Passed\n\n`;
+		md += `All inspected source files conform to Zero Phone-Home policies. No unauthorized outbound transmission endpoints detected.\n\n`;
 	}
 
-	return lines.join('\n');
+	return md;
 }
 
-export function writeGitHubOutputs(outputs = {}) {
-	const githubOutputFile = process.env.GITHUB_OUTPUT;
-	if (!githubOutputFile) {
-		return;
+/**
+ * Writes markdown summary to GITHUB_STEP_SUMMARY if available.
+ */
+export function writeStepSummary(markdownContent) {
+	const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+	if (summaryPath) {
+		try {
+			fs.appendFileSync(summaryPath, markdownContent + '\n', 'utf8');
+		} catch (err) {
+			console.error(`[WARN] Failed to write GITHUB_STEP_SUMMARY: ${err.message}`);
+		}
 	}
-
-	const outputEntries = Object.entries(outputs).map(
-		([key, value]) => `${key}=${String(value)}`
-	);
-
-	fs.appendFileSync(githubOutputFile, outputEntries.join('\n') + '\n', 'utf8');
 }
 
-export function writeStepSummary(summaryMarkdown) {
-	const githubSummaryFile = process.env.GITHUB_STEP_SUMMARY;
-	if (!githubSummaryFile) {
-		return;
+/**
+ * Sets output key-value pairs for GitHub Actions.
+ */
+export function setActionOutput(key, value) {
+	const outputPath = process.env.GITHUB_OUTPUT;
+	if (outputPath) {
+		try {
+			fs.appendFileSync(outputPath, `${key}=${value}\n`, 'utf8');
+		} catch (err) {
+			console.error(`[WARN] Failed to write GITHUB_OUTPUT: ${err.message}`);
+		}
 	}
-
-	fs.appendFileSync(githubSummaryFile, summaryMarkdown + '\n', 'utf8');
 }

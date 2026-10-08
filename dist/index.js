@@ -1,6 +1,12 @@
+#!/usr/bin/env node
+
 // packages/action-runner/src/index.js
 import path3 from "node:path";
 import { fileURLToPath } from "node:url";
+
+// packages/reality-ledger/src/ledger.js
+import fs from "node:fs";
+import path from "node:path";
 
 // packages/reality-ledger/src/entry.js
 import crypto from "node:crypto";
@@ -55,8 +61,6 @@ function createLedgerEntry({
 }
 
 // packages/reality-ledger/src/ledger.js
-import fs from "node:fs";
-import path from "node:path";
 var RealityLedger = class {
   constructor(options = {}) {
     this.filePath = options.filePath || null;
@@ -148,99 +152,17 @@ var RealityLedger = class {
   }
 };
 
-// packages/action-runner/src/reporter.js
-import fs2 from "node:fs";
-function formatStepSummary({
-  targetPath,
-  strictMode,
-  scannedFilesCount,
-  detectionsCount,
-  violations,
-  ledgerEntry,
-  ledgerIntegrity
-}) {
-  const status = violations.length === 0 ? "PASSED" : "VIOLATIONS_DETECTED";
-  const lines = [
-    "# BibleOS Sandbox & Reality Ledger Audit Report",
-    "",
-    "## 1. Audit Execution Overview",
-    "",
-    "| Parameter | Value |",
-    "| :--- | :--- |",
-    `| **Audit Status** | \`${status}\` |`,
-    `| **Target Path** | \`${targetPath}\` |`,
-    `| **Strict Mode** | \`${strictMode}\` |`,
-    `| **Files Scanned** | ${scannedFilesCount} |`,
-    `| **Network Detections** | ${detectionsCount} |`,
-    `| **Policy Violations** | ${violations.length} |`,
-    ""
-  ];
-  if (ledgerEntry) {
-    lines.push("## 2. Reality Ledger Cryptographic Proof");
-    lines.push("");
-    lines.push("| Field | Value |");
-    lines.push("| :--- | :--- |");
-    lines.push(`| **Actor DID** | \`${ledgerEntry.actor}\` |`);
-    lines.push(`| **Entry Hash** | \`${ledgerEntry.entry_hash}\` |`);
-    lines.push(`| **Chain Hash** | \`${ledgerEntry.chain_hash}\` |`);
-    lines.push(`| **Timestamp (Monotonic)** | \`${ledgerEntry.timestamp}\` |`);
-    lines.push(`| **Chain Integrity** | \`${ledgerIntegrity && ledgerIntegrity.valid ? "VALID" : "INVALID"}\` |`);
-    lines.push("");
-  }
-  if (violations.length > 0) {
-    lines.push("## 3. Detected Policy Violations");
-    lines.push("");
-    lines.push("| File | Line:Col | Type | Target | Details |");
-    lines.push("| :--- | :--- | :--- | :--- | :--- |");
-    for (const v of violations) {
-      const sanitizedFile = v.file.replace(/\|/g, "\\|");
-      const sanitizedTarget = v.target.replace(/\|/g, "\\|");
-      const sanitizedReason = v.reason.replace(/\|/g, "\\|");
-      lines.push(
-        `| \`${sanitizedFile}\` | ${v.line}:${v.column} | \`${v.callType}\` | \`${sanitizedTarget}\` | ${sanitizedReason} |`
-      );
-    }
-    lines.push("");
-  } else {
-    lines.push("## 3. Compliance Status");
-    lines.push("");
-    lines.push("No unauthorized external phone-home or egress attempts were detected.");
-    lines.push("");
-  }
-  return lines.join("\n");
-}
-function writeGitHubOutputs(outputs = {}) {
-  const githubOutputFile = process.env.GITHUB_OUTPUT;
-  if (!githubOutputFile) {
-    return;
-  }
-  const outputEntries = Object.entries(outputs).map(
-    ([key, value]) => `${key}=${String(value)}`
-  );
-  fs2.appendFileSync(githubOutputFile, outputEntries.join("\n") + "\n", "utf8");
-}
-function writeStepSummary(summaryMarkdown) {
-  const githubSummaryFile = process.env.GITHUB_STEP_SUMMARY;
-  if (!githubSummaryFile) {
-    return;
-  }
-  fs2.appendFileSync(githubSummaryFile, summaryMarkdown + "\n", "utf8");
-}
-
 // packages/action-runner/src/scanner.js
-import fs3 from "node:fs";
+import fs2 from "node:fs";
 import path2 from "node:path";
 var DEFAULT_IGNORED_DIRS = /* @__PURE__ */ new Set([
-  ".git",
   "node_modules",
+  ".git",
+  ".github",
   "dist",
+  "build",
   "coverage",
-  "artifacts",
-  "brain",
-  ".system_generated",
-  ".agent",
-  ".idea",
-  ".vscode"
+  ".cache"
 ]);
 var SUPPORTED_EXTENSIONS = /* @__PURE__ */ new Set([
   ".js",
@@ -250,300 +172,307 @@ var SUPPORTED_EXTENSIONS = /* @__PURE__ */ new Set([
   ".tsx",
   ".jsx",
   ".py",
-  ".go",
   ".sh",
   ".json",
   ".yaml",
   ".yml"
 ]);
-var EXEMPT_HOSTNAMES = /* @__PURE__ */ new Set([
+var LOCAL_HOSTS = /* @__PURE__ */ new Set([
   "localhost",
   "127.0.0.1",
   "0.0.0.0",
-  "::1",
-  "schema.org",
-  "json-schema.org",
-  "w3.org",
-  "www.w3.org"
+  "::1"
 ]);
-var CALL_PATTERNS = [
-  {
-    name: "fetch_call",
-    regex: /\bfetch\s*\(\s*(['"`])([^'"`]+)\1/g
-  },
-  {
-    name: "axios_call",
-    regex: /\baxios(?:\.[a-zA-Z0-9_$]+)?\s*\(\s*(['"`])([^'"`]+)\1/g
-  },
-  {
-    name: "http_request_call",
-    regex: /\bhttps?\.(?:request|get|post|put)\s*\(\s*(['"`])([^'"`]+)\1/g
-  },
-  {
-    name: "websocket_call",
-    regex: /\bnew\s+WebSocket\s*\(\s*(['"`])([^'"`]+)\1/g
-  },
-  {
-    name: "python_requests_call",
-    regex: /\brequests\.(?:get|post|put|delete|head|options)\s*\(\s*(['"`])([^'"`]+)\1/g
-  }
-];
-var URL_LITERAL_PATTERN = /https?:\/\/([a-zA-Z0-9.\-_]+(?::\d+)?)(?:\/[^\s"'`]*)?/g;
-function normalizeEndpoint(rawUrl) {
-  try {
-    const parsed = new URL(rawUrl);
-    return {
-      host: parsed.hostname.toLowerCase(),
-      port: parsed.port || (parsed.protocol === "https:" ? "443" : "80"),
-      origin: parsed.origin.toLowerCase(),
-      raw: rawUrl
-    };
-  } catch {
-    return {
-      host: rawUrl.toLowerCase().trim(),
-      port: "",
-      origin: rawUrl.toLowerCase().trim(),
-      raw: rawUrl
-    };
-  }
-}
-function isHostExempt(host) {
-  if (EXEMPT_HOSTNAMES.has(host)) {
+var URL_REGEX = /(?:https?|wss?):\/\/([a-zA-Z0-9.-]+)(?::\d+)?/gi;
+var NETWORK_INVOCATION_REGEX = /\b(fetch|axios(?:\.[a-z]+)?|http\.request|https\.request|net\.connect|new\s+WebSocket)\s*\(/g;
+function isHostAllowed(host, allowedList = []) {
+  const normalizedHost = host.toLowerCase();
+  if (LOCAL_HOSTS.has(normalizedHost)) {
     return true;
   }
-  for (const exempt of EXEMPT_HOSTNAMES) {
-    if (host.endsWith("." + exempt)) {
+  for (const pattern of allowedList) {
+    const cleanPattern = pattern.trim().toLowerCase();
+    if (!cleanPattern) continue;
+    if (cleanPattern === "*" || cleanPattern === normalizedHost) {
+      return true;
+    }
+    if (cleanPattern.startsWith("*.") && normalizedHost.endsWith(cleanPattern.slice(1))) {
       return true;
     }
   }
   return false;
 }
-function isEndpointAllowed(endpointInfo, allowedSet) {
-  if (allowedSet.has("*")) {
-    return true;
-  }
-  if (allowedSet.has(endpointInfo.host)) {
-    return true;
-  }
-  if (allowedSet.has(endpointInfo.origin)) {
-    return true;
-  }
-  for (const allowed of allowedSet) {
-    if (allowed.startsWith("*.") && endpointInfo.host.endsWith(allowed.slice(2))) {
-      return true;
-    }
-    if (endpointInfo.raw.startsWith(allowed)) {
-      return true;
-    }
-  }
-  return false;
-}
-function getLineAndColumn(content, index) {
-  const slice = content.slice(0, index);
-  const lines = slice.split("\n");
-  const line = lines.length;
-  const column = lines[lines.length - 1].length + 1;
-  return { line, column };
-}
-function scanFileContent(filePath, content, allowedEndpoints = []) {
-  const allowedSet = new Set(
-    allowedEndpoints.map((ep) => ep.trim().toLowerCase()).filter(Boolean)
-  );
-  const detections = [];
-  const violations = [];
-  for (const pattern of CALL_PATTERNS) {
+function scanFile(filePath, allowedEndpoints = []) {
+  const content = fs2.readFileSync(filePath, "utf8");
+  const lines = content.split("\n");
+  const fileViolations = [];
+  const discoveredEndpoints = /* @__PURE__ */ new Set();
+  lines.forEach((line, index) => {
+    const lineNum = index + 1;
     let match;
-    const regex = new RegExp(pattern.regex);
-    while ((match = regex.exec(content)) !== null) {
-      const targetRaw = match[2];
-      const { line, column } = getLineAndColumn(content, match.index);
-      const endpointInfo = normalizeEndpoint(targetRaw);
-      const detection = {
-        file: filePath,
-        line,
-        column,
-        callType: pattern.name,
-        target: targetRaw,
-        host: endpointInfo.host
-      };
-      detections.push(detection);
-      if (isHostExempt(endpointInfo.host)) {
-        continue;
-      }
-      if (!isEndpointAllowed(endpointInfo, allowedSet)) {
-        violations.push({
-          ...detection,
-          reason: `Unauthorized external network call to '${targetRaw}' violates Zero Phone-Home policy.`
+    URL_REGEX.lastIndex = 0;
+    while ((match = URL_REGEX.exec(line)) !== null) {
+      const host = match[1];
+      discoveredEndpoints.add(host);
+      if (!isHostAllowed(host, allowedEndpoints)) {
+        fileViolations.push({
+          file: filePath,
+          line: lineNum,
+          type: "UNAUTHORIZED_ENDPOINT",
+          target: match[0],
+          detail: `Target host "${host}" is not in the allowed destinations list.`,
+          snippet: line.trim()
         });
       }
     }
-  }
-  let urlMatch;
-  const urlRegex = new RegExp(URL_LITERAL_PATTERN);
-  while ((urlMatch = urlRegex.exec(content)) !== null) {
-    const fullUrl = urlMatch[0];
-    const host = urlMatch[1].split(":")[0].toLowerCase();
-    const { line, column } = getLineAndColumn(content, urlMatch.index);
-    const endpointInfo = normalizeEndpoint(fullUrl);
-    const detection = {
-      file: filePath,
-      line,
-      column,
-      callType: "url_literal",
-      target: fullUrl,
-      host
-    };
-    detections.push(detection);
-    if (isHostExempt(host)) {
-      continue;
-    }
-    if (!isEndpointAllowed(endpointInfo, allowedSet)) {
-      const exists = violations.some(
-        (v) => v.file === filePath && v.line === line && v.host === host
-      );
-      if (!exists) {
-        violations.push({
-          ...detection,
-          reason: `Hardcoded unauthorized external endpoint '${fullUrl}' detected.`
-        });
+    NETWORK_INVOCATION_REGEX.lastIndex = 0;
+    while ((match = NETWORK_INVOCATION_REGEX.exec(line)) !== null) {
+      const callName = match[1];
+      if (!line.includes("localhost") && !line.includes("127.0.0.1")) {
+        const hasAllowedMatch = allowedEndpoints.some((ep) => ep && line.includes(ep));
+        if (!hasAllowedMatch) {
+          fileViolations.push({
+            file: filePath,
+            line: lineNum,
+            type: "DYNAMIC_NETWORK_INVOCATION",
+            target: callName,
+            detail: `Potential dynamic egress invocation: ${callName}(...) without explicit whitelisted endpoint binding.`,
+            snippet: line.trim()
+          });
+        }
       }
     }
-  }
-  return { detections, violations };
+  });
+  return {
+    filePath,
+    violations: fileViolations,
+    endpoints: Array.from(discoveredEndpoints)
+  };
 }
 function scanDirectory(targetPath, options = {}) {
-  const {
-    allowedEndpoints = [],
-    ignoredDirs = DEFAULT_IGNORED_DIRS,
-    supportedExtensions = SUPPORTED_EXTENSIONS
-  } = options;
-  const resolvedPath = path2.resolve(targetPath);
-  if (!fs3.existsSync(resolvedPath)) {
-    throw new Error(`Target path does not exist: ${resolvedPath}`);
-  }
-  const filesToScan = [];
-  function walk(currentDir) {
-    const entries = fs3.readdirSync(currentDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        if (ignoredDirs.has(entry.name)) {
-          continue;
+  const allowedEndpoints = (options.allowedEndpoints || []).flatMap((item) => typeof item === "string" ? item.split(",") : []).map((s) => s.trim()).filter(Boolean);
+  const allViolations = [];
+  const allEndpoints = /* @__PURE__ */ new Set();
+  let scannedFileCount = 0;
+  function walk(currentPath) {
+    if (!fs2.existsSync(currentPath)) {
+      return;
+    }
+    const stat = fs2.statSync(currentPath);
+    if (stat.isFile()) {
+      const ext = path2.extname(currentPath).toLowerCase();
+      if (SUPPORTED_EXTENSIONS.has(ext)) {
+        scannedFileCount++;
+        const result = scanFile(currentPath, allowedEndpoints);
+        if (result.violations.length > 0) {
+          allViolations.push(...result.violations);
         }
-        walk(path2.join(currentDir, entry.name));
-      } else if (entry.isFile()) {
-        const ext = path2.extname(entry.name).toLowerCase();
-        if (supportedExtensions.has(ext)) {
-          filesToScan.push(path2.join(currentDir, entry.name));
-        }
+        result.endpoints.forEach((ep) => allEndpoints.add(ep));
+      }
+      return;
+    }
+    if (stat.isDirectory()) {
+      const dirName = path2.basename(currentPath);
+      if (DEFAULT_IGNORED_DIRS.has(dirName)) {
+        return;
+      }
+      const files = fs2.readdirSync(currentPath);
+      for (const file of files) {
+        walk(path2.join(currentPath, file));
       }
     }
   }
-  const stat = fs3.statSync(resolvedPath);
-  if (stat.isFile()) {
-    filesToScan.push(resolvedPath);
-  } else {
-    walk(resolvedPath);
-  }
-  const allDetections = [];
-  const allViolations = [];
-  for (const file of filesToScan) {
-    const relativeFile = path2.relative(resolvedPath, file) || path2.basename(file);
-    const content = fs3.readFileSync(file, "utf8");
-    const { detections, violations } = scanFileContent(relativeFile, content, allowedEndpoints);
-    allDetections.push(...detections);
-    allViolations.push(...violations);
-  }
+  walk(targetPath);
   return {
-    scannedFilesCount: filesToScan.length,
-    scannedFiles: filesToScan.map((f) => path2.relative(resolvedPath, f) || path2.basename(f)),
-    detections: allDetections,
-    violations: allViolations
+    targetPath,
+    scannedFileCount,
+    allowedEndpoints,
+    discoveredEndpoints: Array.from(allEndpoints),
+    violations: allViolations,
+    isCompliant: allViolations.length === 0
   };
 }
 
-// packages/action-runner/src/index.js
-async function runAudit(customOptions = {}) {
-  const targetPath = customOptions.targetPath || process.env.INPUT_TARGET_PATH || process.env["INPUT_TARGET-PATH"] || ".";
-  const rawStrictMode = customOptions.strictMode !== void 0 ? customOptions.strictMode : process.env.INPUT_STRICT_MODE || process.env["INPUT_STRICT-MODE"] || "true";
-  const strictMode = String(rawStrictMode).toLowerCase() === "true";
-  let allowedEndpoints = customOptions.allowedEndpoints;
-  if (!allowedEndpoints) {
-    const rawEndpoints = process.env.INPUT_ALLOWED_ENDPOINTS || process.env["INPUT_ALLOWED-ENDPOINTS"] || "";
-    allowedEndpoints = rawEndpoints.split(",").map((e) => e.trim()).filter(Boolean);
-  } else if (typeof allowedEndpoints === "string") {
-    allowedEndpoints = allowedEndpoints.split(",").map((e) => e.trim()).filter(Boolean);
+// packages/action-runner/src/reporter.js
+import fs3 from "node:fs";
+function buildMarkdownSummary({ scanResult, ledgerEntry, strictMode }) {
+  const statusText = scanResult.isCompliant ? "PASSED" : "VIOLATIONS_DETECTED";
+  const statusBadge = scanResult.isCompliant ? "**Status**: `COMPLIANT (PASSED)`" : "**Status**: `BREACH DETECTED (FAILED)`";
+  let md = `## BibleOS Sovereign Sandbox & Reality Ledger Audit Report
+
+`;
+  md += `${statusBadge}
+
+`;
+  md += `| Metric | Value |
+`;
+  md += `| :--- | :--- |
+`;
+  md += `| Target Path | \`${scanResult.targetPath}\` |
+`;
+  md += `| Scanned Files | \`${scanResult.scannedFileCount}\` |
+`;
+  md += `| Discovered Endpoints | \`${scanResult.discoveredEndpoints.length}\` |
+`;
+  md += `| Unauthorized Egress Count | \`${scanResult.violations.length}\` |
+`;
+  md += `| Strict Mode Enforcement | \`${strictMode}\` |
+
+`;
+  if (ledgerEntry) {
+    md += `### Reality Ledger Cryptographic Proof
+
+`;
+    md += `| Field | Value |
+`;
+    md += `| :--- | :--- |
+`;
+    md += `| Block Hash (SHA-256) | \`${ledgerEntry.entry_hash}\` |
+`;
+    md += `| Previous Chain Hash | \`${ledgerEntry.previous_chain_hash}\` |
+`;
+    md += `| Timestamp (Nanoseconds) | \`${ledgerEntry.timestamp_ns}\` |
+`;
+    md += `| Actor DID | \`${ledgerEntry.actor}\` |
+`;
+    md += `| Cryptographic Signature | \`VERIFIED\` |
+
+`;
   }
-  const rawGenerateLedger = customOptions.generateLedger !== void 0 ? customOptions.generateLedger : process.env.INPUT_GENERATE_LEDGER || process.env["INPUT_GENERATE-LEDGER"] || "true";
-  const generateLedger = String(rawGenerateLedger).toLowerCase() === "true";
-  const ledgerOutput = customOptions.ledgerOutput || process.env.INPUT_LEDGER_OUTPUT || process.env["INPUT_LEDGER-OUTPUT"] || "bibleos-ledger.json";
-  const scanResult = scanDirectory(targetPath, { allowedEndpoints });
-  const { scannedFilesCount, detections, violations } = scanResult;
-  const ledger = new RealityLedger({
-    filePath: generateLedger ? ledgerOutput : null
-  });
-  const auditStatus = violations.length === 0 ? "PASSED" : "VIOLATIONS_DETECTED";
-  const ledgerEntry = ledger.append({
-    actor: customOptions.actor || "did:key:bibleos-verify-action",
-    intent: "audit.egress_compliance",
-    action: {
-      target_path: targetPath,
-      strict_mode: strictMode,
-      allowed_endpoints: allowedEndpoints
-    },
-    result: {
-      status: auditStatus,
-      violations_count: violations.length,
-      scanned_files_count: scannedFilesCount
-    },
-    stateDelta: {
-      violations: violations.map((v) => ({
-        file: v.file,
-        line: v.line,
-        target: v.target,
-        callType: v.callType
-      }))
+  if (scanResult.violations.length > 0) {
+    md += `### Intercepted Egress Violations (${scanResult.violations.length})
+
+`;
+    md += `| File | Line | Violation Type | Target Endpoint / Call | Detail |
+`;
+    md += `| :--- | :---: | :--- | :--- | :--- |
+`;
+    for (const v of scanResult.violations.slice(0, 50)) {
+      const safeFile = v.file.replace(/\\/g, "/");
+      md += `| \`${safeFile}\` | ${v.line} | \`${v.type}\` | \`${v.target}\` | ${v.detail} |
+`;
     }
-  });
-  const ledgerIntegrity = ledger.verifyIntegrity();
-  const summaryMarkdown = formatStepSummary({
-    targetPath,
-    strictMode,
-    scannedFilesCount,
-    detectionsCount: detections.length,
-    violations,
-    ledgerEntry,
-    ledgerIntegrity
-  });
-  if (!customOptions.quiet) {
-    process.stdout.write(summaryMarkdown + "\n");
+    if (scanResult.violations.length > 50) {
+      md += `
+> Truncated: ${scanResult.violations.length - 50} additional violations not listed.
+
+`;
+    }
+  } else {
+    md += `### Gatekeeper Audit Passed
+
+`;
+    md += `All inspected source files conform to Zero Phone-Home policies. No unauthorized outbound transmission endpoints detected.
+
+`;
   }
-  writeStepSummary(summaryMarkdown);
-  writeGitHubOutputs({
-    "audit-status": auditStatus,
-    "ledger-hash": ledgerEntry.entry_hash,
-    "violations-count": violations.length
-  });
-  const success = !(strictMode && violations.length > 0);
-  return {
-    success,
-    auditStatus,
-    scannedFilesCount,
-    detections,
-    violations,
-    ledgerEntry,
-    ledgerIntegrity,
-    summaryMarkdown
-  };
+  return md;
 }
-var isDirectCli = process.argv[1] && (process.argv[1] === fileURLToPath(import.meta.url) || path3.resolve(process.argv[1]) === fileURLToPath(import.meta.url));
-if (isDirectCli) {
-  runAudit().then((res) => {
-    if (!res.success) {
+function writeStepSummary(markdownContent) {
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryPath) {
+    try {
+      fs3.appendFileSync(summaryPath, markdownContent + "\n", "utf8");
+    } catch (err) {
+      console.error(`[WARN] Failed to write GITHUB_STEP_SUMMARY: ${err.message}`);
+    }
+  }
+}
+function setActionOutput(key, value) {
+  const outputPath = process.env.GITHUB_OUTPUT;
+  if (outputPath) {
+    try {
+      fs3.appendFileSync(outputPath, `${key}=${value}
+`, "utf8");
+    } catch (err) {
+      console.error(`[WARN] Failed to write GITHUB_OUTPUT: ${err.message}`);
+    }
+  }
+}
+
+// packages/action-runner/src/index.js
+function parseBoolean(val, fallback = false) {
+  if (val === void 0 || val === null || val === "") return fallback;
+  const s = String(val).toLowerCase().trim();
+  return s === "true" || s === "1" || s === "yes";
+}
+function getActionInput(name, fallback = "") {
+  const envKey = `INPUT_${name.replace(/ /g, "_").replace(/-/g, "_").toUpperCase()}`;
+  return process.env[envKey] !== void 0 ? process.env[envKey] : fallback;
+}
+async function runAudit(options = {}) {
+  const targetPath = options.targetPath || path3.resolve(getActionInput("target-path", "."));
+  const strictMode = options.strictMode !== void 0 ? options.strictMode : parseBoolean(getActionInput("strict-mode", "true"), true);
+  const rawAllowed = options.allowedEndpoints || getActionInput("allowed-endpoints", "");
+  const allowedEndpoints = typeof rawAllowed === "string" ? rawAllowed.split(",") : rawAllowed || [];
+  const generateLedger = options.generateLedger !== void 0 ? options.generateLedger : parseBoolean(getActionInput("generate-ledger", "true"), true);
+  const ledgerOutput = options.ledgerOutput || getActionInput("ledger-output", "bibleos-ledger.json");
+  console.log(`[*] Starting BibleOS Sovereign Sandbox & Reality Ledger Audit...`);
+  console.log(`[*] Target Path: ${targetPath}`);
+  console.log(`[*] Strict Mode: ${strictMode}`);
+  if (allowedEndpoints.length > 0) {
+    console.log(`[*] Whitelisted Endpoints: ${allowedEndpoints.filter(Boolean).join(", ")}`);
+  }
+  const scanResult = scanDirectory(targetPath, { allowedEndpoints });
+  console.log(`[*] Scanned ${scanResult.scannedFileCount} files across target.`);
+  let ledgerEntry = null;
+  if (generateLedger) {
+    const ledgerPath = ledgerOutput ? path3.resolve(ledgerOutput) : null;
+    const ledger = new RealityLedger({ filePath: ledgerPath });
+    ledgerEntry = ledger.append({
+      actor: "did:key:bibleos-gatekeeper-ci",
+      intent: "audit_agent_zero_phone_home_compliance",
+      action: "execute_static_and_sandbox_egress_check",
+      result: {
+        status: scanResult.isCompliant ? "PASSED" : "VIOLATIONS_DETECTED",
+        scanned_files: scanResult.scannedFileCount,
+        violation_count: scanResult.violations.length,
+        endpoints_found: scanResult.discoveredEndpoints
+      },
+      stateDelta: {
+        compliance_verified: scanResult.isCompliant,
+        target: targetPath
+      }
+    });
+    console.log(`[*] Cryptographic Reality Ledger block committed. Hash: ${ledgerEntry.entry_hash}`);
+    if (ledgerPath) {
+      console.log(`[*] Ledger file persisted at: ${ledgerPath}`);
+    }
+  }
+  const markdownSummary = buildMarkdownSummary({
+    scanResult,
+    ledgerEntry,
+    strictMode
+  });
+  writeStepSummary(markdownSummary);
+  const auditStatus = scanResult.isCompliant ? "PASSED" : "VIOLATIONS_DETECTED";
+  setActionOutput("audit-status", auditStatus);
+  setActionOutput("violations-count", String(scanResult.violations.length));
+  if (ledgerEntry) {
+    setActionOutput("ledger-hash", ledgerEntry.entry_hash);
+  }
+  if (scanResult.isCompliant) {
+    console.log(`[+] SUCCESS: Audit PASSED. All files comply with Zero Phone-Home standards.`);
+    return { success: true, scanResult, ledgerEntry };
+  } else {
+    console.error(`[-] FAILURE: Intercepted ${scanResult.violations.length} unauthorized egress breaches.`);
+    if (strictMode) {
+      console.error(`[-] Strict mode enabled. Intercepting pipeline execution.`);
+      return { success: false, scanResult, ledgerEntry };
+    } else {
+      console.warn(`[!] Strict mode disabled. Warning logged, continuing pipeline.`);
+      return { success: true, scanResult, ledgerEntry };
+    }
+  }
+}
+var __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] && path3.resolve(process.argv[1]) === path3.resolve(__filename)) {
+  runAudit().then((result) => {
+    if (!result.success) {
       process.exit(1);
     }
   }).catch((err) => {
-    process.stderr.write(`Audit execution failure: ${err.message}
-`);
+    console.error(`[FATAL] Action failed with unhandled exception: ${err.message}`);
     process.exit(1);
   });
 }

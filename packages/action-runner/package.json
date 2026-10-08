@@ -3,7 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "main": "./src/index.js",
-  "exports": {
-    ".": "./src/index.js"
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@bibleos/bos1-protocol": "0.1.0",
+    "@bibleos/reality-ledger": "0.1.0"
   }
 }
