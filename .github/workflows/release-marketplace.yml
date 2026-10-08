@@ -1,0 +1,24 @@
+name: Marketplace Release & Floating Tag
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  update-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update Floating Major Tag (v1)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -fa v1 -m "Update v1 floating tag"
+          git push origin v1 --force

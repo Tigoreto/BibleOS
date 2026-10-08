@@ -1,0 +1,41 @@
+name: "BibleOS Sovereign Agent Sandbox & Ledger Verifier"
+description: "Zero phone-home compliance gatekeeper and cryptographic reality ledger auditor for autonomous AI agents."
+author: "Leopard Inc"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  target-path:
+    description: "Path to agent code or manifest to audit"
+    required: false
+    default: "."
+  strict-mode:
+    description: "Fail the workflow if unauthorized endpoints or violations are detected"
+    required: false
+    default: "true"
+  allowed-endpoints:
+    description: "Comma-separated list of whitelisted external domains"
+    required: false
+    default: ""
+  generate-ledger:
+    description: "Generate cryptographically chained ledger block (JSON file)"
+    required: false
+    default: "true"
+  ledger-output:
+    description: "Output path for the generated reality ledger file"
+    required: false
+    default: "bibleos-ledger.json"
+
+outputs:
+  audit-status:
+    description: "Audit status: PASSED or VIOLATIONS_DETECTED"
+  ledger-hash:
+    description: "SHA-256 hash of the final reality ledger block"
+  violations-count:
+    description: "Number of unauthorized egress attempts or compliance breaches"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"

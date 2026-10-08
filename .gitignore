@@ -6,11 +6,12 @@ jspm_packages/
 .pnp.*
 
 # Build outputs
-dist/
+# dist/ (tracked for GitHub Action Marketplace distribution)
 build/
 out/
 .next/
 .nuxt/
+bibleos-ledger.json
 .docusaurus/
 .astro/
 target/
