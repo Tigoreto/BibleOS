@@ -125,11 +125,16 @@ Every verification generates a verifiable ledger block structured as follows:
 ## 5. Local Development & Testing
 
 ```bash
-# Run entire test suite (BOS-1 protocol, kernel, ledger, and action runner)
+# Run entire test suite (BOS-1 protocol, kernel, ledger, web console, and action runner)
 npm test
 
 # Build single-file production bundle for distribution
 npm run build
+
+# Open Reality Ledger Web Console
+open apps/web/index.html # On macOS / Linux
+# or
+start apps/web/index.html # On Windows
 ```
 
 ---

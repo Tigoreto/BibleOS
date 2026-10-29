@@ -6,6 +6,6 @@
   "description": "BibleOS Sovereign Protocol & AIOS Platform",
   "scripts": {
     "build": "npx esbuild packages/action-runner/src/index.js --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js",
-    "test": "node --test packages/*/tests/*.test.js core/kernel/tests/*.test.js"
+    "test": "node --test packages/*/tests/*.test.js core/kernel/tests/*.test.js apps/*/tests/*.test.js"
   }
 }
