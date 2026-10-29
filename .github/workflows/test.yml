@@ -27,7 +27,7 @@ jobs:
       - name: Self-Test Action Runner
         uses: ./
         with:
-          target-path: "./core"
+          target-path: "./core/kernel/src"
           strict-mode: "true"
           allowed-endpoints: ""
           generate-ledger: "true"

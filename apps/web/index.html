@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BibleOS — Sovereign Protocol & Reality Ledger Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Instrument+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+  <div class="console-container">
+    <!-- Top Brand Header -->
+    <header class="top-header">
+      <div class="brand-row">
+        <div>
+          <h1 class="brand-title">Bible<span>OS</span> Web Console</h1>
+          <p class="brand-subtitle">Sovereign Protocol for Human–AI Co-Governance · Reality Ledger Block Explorer & Node Monitor</p>
+        </div>
+        <div class="network-badge">
+          <span class="indicator-dot"></span>
+          <span>Genesis Node #01 · Standalone Sovereign Mesh</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" aria-label="Console Navigation">
+        <button class="tab-btn active" data-target="view-health" type="button">Node Health</button>
+        <button class="tab-btn" data-target="view-ledger" type="button">Reality Ledger</button>
+        <button class="tab-btn" data-target="view-protocol" type="button">Protocol Specs</button>
+        <button class="tab-btn" data-target="view-quickstart" type="button">Developer Quickstart</button>
+      </nav>
+    </header>
+
+    <!-- VIEW 1: Node Health & Runtime -->
+    <section id="view-health" class="view-panel active">
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-title">Node Sovereign Identity</div>
+          <div class="metric-value" style="font-size: 1.1rem; margin-bottom: 0.5rem;">W3C did:key</div>
+          <div class="mono-display" id="displayNodeDid">did:key:z6MkhaXgBZDvotDkL5257faiztiuC2ZXuE9vM5Z1f8q7yL9a</div>
+          <div class="metric-caption" style="margin-top: 0.5rem;">Cryptographically anchored locally via Ed25519 multicodec.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Zero Phone-Home Gatekeeper</div>
+          <div class="metric-value" style="color: var(--success);">ENFORCED</div>
+          <div class="metric-caption">Default outbound routing: <strong>BLOCKED (*)</strong>. Explicit peer DID whitelist required.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Reality Ledger Engine</div>
+          <div class="metric-value" style="color: var(--accent);">APPEND-ONLY</div>
+          <div class="metric-caption">Nanosecond resolution monotonic timestamps with unbroken SHA-256 block chain pointers.</div>
+        </div>
+      </div>
+
+      <!-- Autonomous Loop State Machine Visualizer -->
+      <div class="card" style="margin-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <div class="card-title" style="margin-bottom: 0;">Autonomous Cognitive Loop (Sense-Plan-Execute-Audit)</div>
+          <button id="simulateLoopBtn" class="btn" type="button">Simulate Cycle</button>
+        </div>
+        <div class="fsm-loop">
+          <div class="fsm-step" id="fsm-sense">
+            <span class="fsm-step-name">1. Sense</span>
+            <span class="fsm-step-desc">Perceive Inputs</span>
+          </div>
+          <div class="fsm-arrow">→</div>
+          <div class="fsm-step" id="fsm-plan">
+            <span class="fsm-step-name">2. Plan</span>
+            <span class="fsm-step-desc">Structure Intent</span>
+          </div>
+          <div class="fsm-arrow">→</div>
+          <div class="fsm-step" id="fsm-execute">
+            <span class="fsm-step-name">3. Execute</span>
+            <span class="fsm-step-desc">Perform Action</span>
+          </div>
+          <div class="fsm-arrow">→</div>
+          <div class="fsm-step" id="fsm-audit">
+            <span class="fsm-step-name">4. Audit</span>
+            <span class="fsm-step-desc">Gatekeeper Gate</span>
+          </div>
+          <div class="fsm-arrow">→</div>
+          <div class="fsm-step" id="fsm-record">
+            <span class="fsm-step-name">5. Record</span>
+            <span class="fsm-step-desc">Seal to Ledger</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: Reality Ledger Block Viewer -->
+    <section id="view-ledger" class="view-panel">
+      <!-- Ledger Overview Metrics -->
+      <div class="card-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="card">
+          <div class="card-title">Total Sealed Blocks</div>
+          <div class="metric-value" id="statTotalBlocks">4</div>
+          <div class="metric-caption">Immutable events persisted</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mathematical Integrity</div>
+          <div style="margin-top: 0.4rem;">
+            <span class="integrity-badge valid" id="ledgerIntegrityBadge">Chain Verified (Valid)</span>
+          </div>
+          <div class="metric-caption" style="margin-top: 0.6rem;">Zero broken links across history</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Latest Block Hash</div>
+          <div class="metric-value" id="statLatestHash" style="font-size: 1rem;">ebd575327dceb3...</div>
+          <div class="metric-caption">SHA-256 seal tip</div>
+        </div>
+      </div>
+
+      <!-- Controls & Filter -->
+      <div class="ledger-controls">
+        <div class="ledger-actions">
+          <input type="text" id="ledgerSearch" class="search-input" placeholder="Search by DID, Intent, or Hash...">
+          <button class="btn" id="resetLedgerBtn" type="button">Reset to Sample</button>
+        </div>
+        <div class="ledger-actions">
+          <label class="btn btn-primary" style="margin: 0; cursor: pointer;">
+            Load Ledger File (.json)
+            <input type="file" id="ledgerFileInput" accept=".json,.jsonl" style="display: none;">
+          </label>
+        </div>
+      </div>
+
+      <!-- Timeline Block Cards -->
+      <div id="timelineContainer" class="timeline-container">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+    <!-- VIEW 3: Protocol Specifications Explorer -->
+    <section id="view-protocol" class="view-panel">
+      <div class="doc-section">
+        <h2 class="doc-heading">BOS-1 Minimal Protocol Standard</h2>
+        <div class="doc-subheading">Layer 1 Universal Connection Layer · Version 0.1a</div>
+        <p class="doc-paragraph">
+          BOS-1 is a decentralized, zero-phone-home short-range and mesh communication standard. Every compatible device signs outbound packets using its local Ed25519 DID. Undeclared destinations are automatically dropped at the packet boundary.
+        </p>
+
+        <h3 style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin: 1.5rem 0 0.5rem;">
+          Minimal Handshake Payload
+        </h3>
+        <pre class="code-snippet"><code>{
+  "bos_version": "1.0",
+  "device_id": "did:key:z6MkhaXgBZDvotDkL5257faiztiuC2ZX...",
+  "owner_id": "did:key:z6Mk...",
+  "routing_declaration": {
+    "allowed_destinations": ["did:key:z6Mk..."],
+    "blocked_destinations": ["*"]
+  },
+  "timestamp_utc": 1710582000,
+  "signature": "Hex/Base58 encoded Ed25519 signature over canonical payload"
+}</code></pre>
+      </div>
+
+      <div class="doc-section">
+        <h2 class="doc-heading">Reality Ledger Specification</h2>
+        <div class="doc-subheading">Layer 2 Sovereign Memory & Identity Engine</div>
+        <p class="doc-paragraph">
+          The Reality Ledger is an append-only, cryptographically chained event log providing absolute memory continuity for human-AI co-governance.
+        </p>
+        <ul style="padding-left: 1.5rem; font-size: 0.9rem; color: var(--ink-mid); line-height: 1.8;">
+          <li><strong>timestamp</strong>: Monotonic UTC with nanosecond resolution via <code>process.hrtime.bigint()</code>.</li>
+          <li><strong>actor</strong>: Sovereign W3C <code>did:key</code> of the human, node, or agent initiating the event.</li>
+          <li><strong>intent</strong>: Natural language description of the intended purpose.</li>
+          <li><strong>action</strong>: Structured dictionary describing the concrete execution.</li>
+          <li><strong>result</strong>: Full output or intercepted error object.</li>
+          <li><strong>state_delta</strong>: Before/after state differential.</li>
+          <li><strong>chain_hash</strong>: SHA-256 seal of the preceding ledger entry.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- VIEW 4: Developer Quickstart -->
+    <section id="view-quickstart" class="view-panel">
+      <div class="doc-section">
+        <h2 class="doc-heading">1. GitHub Actions Security Verifier</h2>
+        <div class="doc-subheading">Zero Phone-Home Compliance Gatekeeper</div>
+        <p class="doc-paragraph">
+          Incorporate the <code>bibleos-verify-action</code> into your workflow to intercept unauthorized egress and generate cryptographic proof blocks in Step Summaries:
+        </p>
+        <div class="code-snippet">
+          <button class="copy-btn" data-clipboard-target="#snippet-action" type="button">Copy</button>
+          <pre id="snippet-action"><code>- name: Verify Agent Egress & Ledger
+  uses: Leopard/BibleOS@v1
+  with:
+    target-path: "./src"
+    strict-mode: "true"
+    allowed-endpoints: "api.openai.com, api.anthropic.com"
+    generate-ledger: "true"
+    ledger-output: "bibleos-ledger.json"</code></pre>
+        </div>
+      </div>
+
+      <div class="doc-section">
+        <h2 class="doc-heading">2. BibleOS Kernel SDK Usage</h2>
+        <div class="doc-subheading">Autonomous Loop & Ledger Recording</div>
+        <p class="doc-paragraph">
+          Run an autonomous sense-plan-execute cycle directly within Node.js:
+        </p>
+        <div class="code-snippet">
+          <button class="copy-btn" data-clipboard-target="#snippet-kernel" type="button">Copy</button>
+          <pre id="snippet-kernel"><code>import { BibleOSKernel } from './core/kernel/src/kernel.js';
+
+const kernel = new BibleOSKernel({
+  ledgerFilePath: './bibleos-ledger.json'
+});
+
+const outcome = await kernel.runAutonomousCycle({
+  intent: "Analyze sensor telemetry and optimize local temperature",
+  inputData: { tempCelsius: 22.4 },
+  actionHandler: async (ctx) => {
+    return { result: { appliedSetting: "optimal" }, stateDelta: { updated: true } };
+  }
+});
+
+console.log("Committed Ledger Block Hash:", outcome.ledgerEntry.entry_hash);</code></pre>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

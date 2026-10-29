@@ -8,7 +8,9 @@ const DEFAULT_IGNORED_DIRS = new Set([
 	'dist',
 	'build',
 	'coverage',
-	'.cache'
+	'.cache',
+	'tests',
+	'__tests__'
 ]);
 
 const SUPPORTED_EXTENSIONS = new Set([

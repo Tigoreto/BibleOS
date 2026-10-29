@@ -1,0 +1,10 @@
+{
+  "name": "@bibleos/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "BibleOS Sovereign Protocol & Reality Ledger Web Console (English-Only)",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}
