@@ -162,7 +162,9 @@ var DEFAULT_IGNORED_DIRS = /* @__PURE__ */ new Set([
   "dist",
   "build",
   "coverage",
-  ".cache"
+  ".cache",
+  "tests",
+  "__tests__"
 ]);
 var SUPPORTED_EXTENSIONS = /* @__PURE__ */ new Set([
   ".js",
@@ -397,8 +399,15 @@ function parseBoolean(val, fallback = false) {
   return s === "true" || s === "1" || s === "yes";
 }
 function getActionInput(name, fallback = "") {
-  const envKey = `INPUT_${name.replace(/ /g, "_").replace(/-/g, "_").toUpperCase()}`;
-  return process.env[envKey] !== void 0 ? process.env[envKey] : fallback;
+  const keyWithDash = `INPUT_${name.replace(/ /g, "_").toUpperCase()}`;
+  const keyWithUnderscore = `INPUT_${name.replace(/ /g, "_").replace(/-/g, "_").toUpperCase()}`;
+  if (process.env[keyWithDash] !== void 0 && process.env[keyWithDash] !== "") {
+    return process.env[keyWithDash];
+  }
+  if (process.env[keyWithUnderscore] !== void 0 && process.env[keyWithUnderscore] !== "") {
+    return process.env[keyWithUnderscore];
+  }
+  return fallback;
 }
 async function runAudit(options = {}) {
   const targetPath = options.targetPath || path3.resolve(getActionInput("target-path", "."));

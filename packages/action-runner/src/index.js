@@ -13,8 +13,15 @@ function parseBoolean(val, fallback = false) {
 }
 
 function getActionInput(name, fallback = '') {
-	const envKey = `INPUT_${name.replace(/ /g, '_').replace(/-/g, '_').toUpperCase()}`;
-	return process.env[envKey] !== undefined ? process.env[envKey] : fallback;
+	const keyWithDash = `INPUT_${name.replace(/ /g, '_').toUpperCase()}`;
+	const keyWithUnderscore = `INPUT_${name.replace(/ /g, '_').replace(/-/g, '_').toUpperCase()}`;
+	if (process.env[keyWithDash] !== undefined && process.env[keyWithDash] !== '') {
+		return process.env[keyWithDash];
+	}
+	if (process.env[keyWithUnderscore] !== undefined && process.env[keyWithUnderscore] !== '') {
+		return process.env[keyWithUnderscore];
+	}
+	return fallback;
 }
 
 /**
