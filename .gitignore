@@ -71,3 +71,18 @@ pnpm-debug.log*
 .cache/
 .parcel-cache/
 .turbo/
+
+# Python cache & environments
+__pycache__/
+*.py[cod]
+*.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
