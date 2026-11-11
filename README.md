@@ -1,6 +1,6 @@
 # BibleOS Sovereign Agent Sandbox & Ledger Verifier
 
-[![CI](https://github.com/Leopard/BibleOS/actions/workflows/test.yml/badge.svg)](https://github.com/Leopard/BibleOS/actions/workflows/test.yml)
+[![CI](https://github.com/Tigoreto/BibleOS/actions/workflows/test.yml/badge.svg)](https://github.com/Tigoreto/BibleOS/actions/workflows/test.yml)
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-BibleOS--Verify--Action-blue)](https://github.com/marketplace/actions/bibleos-sovereign-agent-sandbox-ledger-verifier)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20-brightgreen.svg)](https://nodejs.org/)
@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify Agent Egress & Ledger
-        uses: Leopard/BibleOS@v1
+        uses: Tigoreto/BibleOS@v1
         with:
           target-path: "./src"
           strict-mode: "true"
